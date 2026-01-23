@@ -33,10 +33,11 @@ jobs:
           VAULT_ADDR: http://98.82.141.249:8200
         run: |
           vault login \
-            -method=oidc \
+            -method=jwt \
             -path=oidc \
             role=github-actions \
             jwt=$ACTIONS_ID_TOKEN_REQUEST_TOKEN
+
 
       # 4. Fetch AWS credentials from Vault
       - name: Get AWS credentials from Vault
