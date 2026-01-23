@@ -1,28 +1,46 @@
-name: Vault Terraform Demo
-on: [push]
+name: Terraform Deployment with Vault
 
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Critical for OIDC: This allows the runner to request the JWT from GitHub
 permissions:
-  id-token: write  # Crucial for OIDC
+  id-token: write
   contents: read
 
 jobs:
-  deploy:
+  terraform:
+    name: "Provision Infrastructure"
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Fetch AWS Credentials from Vault
-        uses: hashicorp/vault-action@v2
+        uses: hashicorp/vault-action@v3
         with:
-          url: http://44.202.202.161:8200
+          # Replace with your EC2 Public IP and Dev Port
+          url: http://44.202.202.161:8200 
           role: gh-actions-role
           method: jwt
+          # Note: Since we used iam_user, we only need ID and Secret
           secrets: |
             aws/creds/terraform-role access_key | AWS_ACCESS_KEY_ID ;
             aws/creds/terraform-role secret_key | AWS_SECRET_ACCESS_KEY
 
-      - uses: hashicorp/setup-terraform@v3
-      - run: |
-          cd terraform
-          terraform init
-          terraform apply -auto-approve
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve
